@@ -35,7 +35,8 @@ class PushTImageRunner(BaseImageRunner):
             render_size=96,
             past_action=False,
             tqdm_interval_sec=5.0,
-            n_envs=None
+            n_envs=None,
+            shared_memory=False
         ):
         super().__init__(output_dir)
         if n_envs is None:
@@ -121,7 +122,7 @@ class PushTImageRunner(BaseImageRunner):
             env_prefixs.append('test/')
             env_init_fn_dills.append(dill.dumps(init_fn))
 
-        env = AsyncVectorEnv(env_fns)
+        env = AsyncVectorEnv(env_fns, shared_memory=shared_memory)
 
         # test env
         # env.reset(seed=env_seeds)
@@ -141,6 +142,7 @@ class PushTImageRunner(BaseImageRunner):
         self.past_action = past_action
         self.max_steps = max_steps
         self.tqdm_interval_sec = tqdm_interval_sec
+        self.shared_memory = shared_memory
     
     def run(self, policy: BaseImagePolicy):
         device = policy.device

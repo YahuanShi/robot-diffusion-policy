@@ -40,7 +40,12 @@ def main(output, robot_ip, vis_camera_idx, init_joints, frequency, command_laten
     dt = 1/frequency
     with SharedMemoryManager() as shm_manager:
         with KeystrokeCounter() as key_counter, \
-            Spacemouse(shm_manager=shm_manager) as sm, \
+            Spacemouse(
+                shm_manager=shm_manager,
+                max_value=300,                 # 无线一般 500；有线常见 300
+                deadzone=(0.12,0.12,0.12, 0.15,0.15,0.15),  # 平移/旋转死区
+                frequency=200
+            ) as sm, \
             RealEnv(
                 output_dir=output, 
                 robot_ip=robot_ip, 
@@ -66,7 +71,7 @@ def main(output, robot_ip, vis_camera_idx, init_joints, frequency, command_laten
             time.sleep(1.0)
             print('Ready!')
             state = env.get_robot_state()
-            target_pose = state['TargetTCPPose']
+            target_pose = np.array(state['TargetTCPPose'], dtype=np.float64).copy()
             t_start = time.monotonic()
             iter_idx = 0
             stop = False
@@ -129,9 +134,22 @@ def main(output, robot_ip, vis_camera_idx, init_joints, frequency, command_laten
                 precise_wait(t_sample)
                 # get teleop command
                 sm_state = sm.get_motion_state_transformed()
+             
                 # print(sm_state)
                 dpos = sm_state[:3] * (env.max_pos_speed / frequency)
                 drot_xyz = sm_state[3:] * (env.max_rot_speed / frequency)
+                # deadman: if no input, hold pose (do not integrate)
+                if np.linalg.norm(dpos) < 1e-4 and np.linalg.norm(drot_xyz) < 1e-3:
+                    # 仍然可以发送保持动作（更稳），也可以选择跳过发送
+                    env.exec_actions(
+                        actions=[target_pose],
+                        timestamps=[t_command_target-time.monotonic()+time.time()],
+                        stages=[stage]
+                    )
+                    precise_wait(t_cycle_end)
+                    iter_idx += 1
+                    continue
+
                 
                 if not sm.is_button_pressed(0):
                     # translation mode
@@ -144,9 +162,9 @@ def main(output, robot_ip, vis_camera_idx, init_joints, frequency, command_laten
 
                 drot = st.Rotation.from_euler('xyz', drot_xyz)
                 target_pose[:3] += dpos
+                #  print("sm z:", sm_state[2], "dpos z:", dpos[2])
                 target_pose[3:] = (drot * st.Rotation.from_rotvec(
                     target_pose[3:])).as_rotvec()
-
                 # execute teleop command
                 env.exec_actions(
                     actions=[target_pose], 

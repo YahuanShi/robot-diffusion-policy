@@ -1,0 +1,4 @@
+- +task=pusht_lowdim
+- task.dataset.zarr_path=data/pusht_demo.zarr
+- task.dataset.val_ratio=0.0
+- task.dataset.max_train_episodes=1

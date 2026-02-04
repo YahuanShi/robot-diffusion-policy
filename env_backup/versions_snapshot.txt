@@ -1,0 +1,6 @@
+python: 3.9.18 | packaged by conda-forge | (main, Aug 30 2023, 03:49:32) 
+[GCC 12.3.0]
+torch: 1.12.1 cuda: 11.3 cuda_available: True
+realsense device count: 1
+realsense: Intel RealSense D435 025222070420
+rtde connected: True

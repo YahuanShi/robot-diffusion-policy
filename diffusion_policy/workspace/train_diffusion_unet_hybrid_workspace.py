@@ -111,16 +111,24 @@ class TrainDiffusionUnetHybridWorkspace(BaseWorkspace):
         assert isinstance(env_runner, BaseImageRunner)
 
         # configure logging
-        wandb_run = wandb.init(
-            dir=str(self.output_dir),
-            config=OmegaConf.to_container(cfg, resolve=True),
-            **cfg.logging
-        )
-        wandb.config.update(
-            {
-                "output_dir": self.output_dir,
-            }
-        )
+        wandb_disabled = os.environ.get("WANDB_DISABLED", "").lower() in ("1", "true", "yes")
+        wandb_mode = os.environ.get("WANDB_MODE", "").lower()
+        if wandb_disabled or wandb_mode == "disabled":
+            class _NoopWandbRun:
+                def log(self, *args, **kwargs):
+                    return None
+            wandb_run = _NoopWandbRun()
+        else:
+            wandb_run = wandb.init(
+                dir=str(self.output_dir),
+                config=OmegaConf.to_container(cfg, resolve=True),
+                **cfg.logging
+            )
+            wandb.config.update(
+                {
+                    "output_dir": self.output_dir,
+                }
+            )
 
         # configure checkpoint
         topk_manager = TopKCheckpointManager(

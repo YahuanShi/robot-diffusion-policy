@@ -44,10 +44,10 @@ class RealEnv:
             obs_key_map=DEFAULT_OBS_KEY_MAP,
             obs_float32=False,
             # action
-            max_pos_speed=0.25,
-            max_rot_speed=0.6,
+            max_pos_speed=0.07,
+            max_rot_speed=0.15,
             # robot
-            tcp_offset=0.13,
+            tcp_offset=0.19,
             init_joints=False,
             # video capture params
             video_capture_fps=30,
@@ -389,7 +389,10 @@ class RealEnv:
     
     def end_episode(self):
         "Stop recording"
-        assert self.is_ready
+        if not self.realsense.is_ready:
+            print("[WARN] Realsense not ready at end_episode")
+        if not self.robot.is_ready:
+            print("[WARN] Robot not ready at end_episode")
         
         # stop video recorder
         self.realsense.stop_recording()
@@ -432,4 +435,3 @@ class RealEnv:
         if this_video_dir.exists():
             shutil.rmtree(str(this_video_dir))
         print(f'Episode {episode_id} dropped!')
-

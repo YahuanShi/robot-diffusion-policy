@@ -1,3 +1,4 @@
+'''spacemouse.py'''
 from spnav import spnav_open, spnav_poll_event, spnav_close, SpnavMotionEvent, SpnavButtonEvent
 from threading import Thread, Event
 from collections import defaultdict
